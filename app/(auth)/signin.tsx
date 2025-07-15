@@ -3,10 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert 
 import { Link, useRouter } from 'expo-router';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-<<<<<<< HEAD
-=======
 import { supabase } from '../supabaseClient';
->>>>>>> 25b6534 (Initial commit with authentication and signup/signin fixes)
 
 export default function SignInScreen() {
   const [email, setEmail] = useState('');
@@ -29,19 +26,6 @@ export default function SignInScreen() {
     setIsLoading(true);
     
     try {
-<<<<<<< HEAD
-      // In a real app, this would authenticate with your backend
-      // For now, we'll simulate a successful sign in
-      const userData = {
-        email,
-        fullName: 'Demo User',
-        createdAt: new Date().toISOString(),
-        isSignedIn: true
-      };
-      
-      await AsyncStorage.setItem('userData', JSON.stringify(userData));
-      
-=======
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -94,23 +78,16 @@ export default function SignInScreen() {
           }
         }
       }
->>>>>>> 25b6534 (Initial commit with authentication and signup/signin fixes)
       Alert.alert('Success', 'Signed in successfully!', [
         { text: 'OK', onPress: () => router.replace('/(tabs)') }
       ]);
     } catch (error) {
-<<<<<<< HEAD
-      console.error('Sign in error:', error);
-=======
->>>>>>> 25b6534 (Initial commit with authentication and signup/signin fixes)
       Alert.alert('Error', 'Failed to sign in. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-<<<<<<< HEAD
-=======
   // Add resend verification logic
   const handleResendVerification = async () => {
     try {
@@ -128,7 +105,6 @@ export default function SignInScreen() {
     }
   };
 
->>>>>>> 25b6534 (Initial commit with authentication and signup/signin fixes)
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>

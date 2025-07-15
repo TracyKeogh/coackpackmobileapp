@@ -3,10 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert 
 import { Link, useRouter } from 'expo-router';
 import { User, Mail, Lock, Eye, EyeOff, Check } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-<<<<<<< HEAD
-=======
 import { supabase } from '../supabaseClient';
->>>>>>> 25b6534 (Initial commit with authentication and signup/signin fixes)
 
 export default function SignUpScreen() {
   const [fullName, setFullName] = useState('');
@@ -53,23 +50,6 @@ export default function SignUpScreen() {
     setIsLoading(true);
     
     try {
-<<<<<<< HEAD
-      // Store user data locally (in a real app, this would be sent to your backend)
-      const userData = {
-        fullName,
-        email,
-        createdAt: new Date().toISOString(),
-        isSignedIn: true
-      };
-      
-      await AsyncStorage.setItem('userData', JSON.stringify(userData));
-      
-      Alert.alert('Success', 'Account created successfully!', [
-        { text: 'OK', onPress: () => router.replace('/(tabs)') }
-      ]);
-    } catch (error) {
-      console.error('Sign up error:', error);
-=======
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -85,7 +65,6 @@ export default function SignUpScreen() {
         { text: 'OK', onPress: () => router.replace('/(auth)/signin') }
       ]);
     } catch (error) {
->>>>>>> 25b6534 (Initial commit with authentication and signup/signin fixes)
       Alert.alert('Error', 'Failed to create account. Please try again.');
     } finally {
       setIsLoading(false);
