@@ -40,7 +40,6 @@ export default function SettingsTab() {
       if (entries) {
         const parsedEntries = JSON.parse(entries);
         const exportData = JSON.stringify(parsedEntries, null, 2);
-        
         // In a real app, you would save this to a file or share it
         Alert.alert('Export Data', 'Diary entries exported successfully!');
         console.log('Exported data:', exportData);
@@ -82,40 +81,26 @@ export default function SettingsTab() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Data Management</Text>
-          
           <TouchableOpacity style={styles.settingItem} onPress={exportEntries}>
             <Download size={20} color="#2563eb" />
             <Text style={styles.settingText}>Export Entries</Text>
           </TouchableOpacity>
-
           <TouchableOpacity style={styles.settingItem} onPress={clearAllEntries}>
             <Trash2 size={20} color="#dc2626" />
             <Text style={[styles.settingText, styles.dangerText]}>Clear All Entries</Text>
           </TouchableOpacity>
         </View>
-
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About</Text>
-          
           <TouchableOpacity style={styles.settingItem} onPress={showAbout}>
             <Info size={20} color="#2563eb" />
             <Text style={styles.settingText}>About Daily Diary</Text>
           </TouchableOpacity>
         </View>
-
         <View style={styles.section}>
-          <TouchableOpacity style={[styles.settingItem, {justifyContent: 'center'}]} onPress={handleSignOut} disabled={isLoading}>
-            <Text style={[styles.settingText, {color: '#dc2626', textAlign: 'center', width: '100%'}]}>{isLoading ? 'Signing Out...' : 'Sign Out'}</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.connectSection}>
-          <Text style={styles.connectTitle}>Connect to Supabase</Text>
-          <Text style={styles.connectDescription}>
-            To sync your diary entries across devices, connect to Supabase for cloud storage and backup.
-          </Text>
-          <TouchableOpacity style={styles.connectButton}>
-            <Text style={styles.connectButtonText}>Connect to Supabase</Text>
+          <TouchableOpacity style={styles.settingItem} onPress={handleSignOut}>
+            <Upload size={20} color="#8b5cf6" />
+            <Text style={styles.settingText}>Sign Out</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -126,97 +111,47 @@ export default function SettingsTab() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
   },
   header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#ffffff',
+    padding: 24,
+    paddingTop: 60,
+    alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
-    marginTop: 40,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700',
     color: '#1e293b',
-    textAlign: 'center',
   },
   content: {
-    flex: 1,
+    padding: 24,
   },
   section: {
-    margin: 16,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    marginBottom: 32,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: 16,
+    color: '#8b5cf6',
+    marginBottom: 12,
   },
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    marginBottom: 8,
+    backgroundColor: '#f8fafc',
   },
   settingText: {
     fontSize: 16,
     color: '#1e293b',
-    fontWeight: '500',
+    marginLeft: 12,
   },
   dangerText: {
     color: '#dc2626',
-  },
-  connectSection: {
-    margin: 16,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  connectTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: 8,
-  },
-  connectDescription: {
-    fontSize: 14,
-    color: '#64748b',
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  connectButton: {
-    backgroundColor: '#2563eb',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  connectButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
