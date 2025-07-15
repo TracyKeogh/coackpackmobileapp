@@ -2,18 +2,12 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Trash2, Download, Upload, Info } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-<<<<<<< HEAD
-
-export default function SettingsTab() {
-  const [isLoading, setIsLoading] = useState(false);
-=======
 import { supabase } from '../supabaseClient';
 import { useRouter } from 'expo-router';
 
 export default function SettingsTab() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
->>>>>>> 25b6534 (Initial commit with authentication and signup/signin fixes)
 
   const clearAllEntries = () => {
     Alert.alert(
@@ -68,8 +62,6 @@ export default function SettingsTab() {
     );
   };
 
-<<<<<<< HEAD
-=======
   const handleSignOut = async () => {
     setIsLoading(true);
     const { error } = await supabase.auth.signOut();
@@ -81,7 +73,6 @@ export default function SettingsTab() {
     }
   };
 
->>>>>>> 25b6534 (Initial commit with authentication and signup/signin fixes)
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -112,15 +103,12 @@ export default function SettingsTab() {
           </TouchableOpacity>
         </View>
 
-<<<<<<< HEAD
-=======
         <View style={styles.section}>
           <TouchableOpacity style={[styles.settingItem, {justifyContent: 'center'}]} onPress={handleSignOut} disabled={isLoading}>
             <Text style={[styles.settingText, {color: '#dc2626', textAlign: 'center', width: '100%'}]}>{isLoading ? 'Signing Out...' : 'Sign Out'}</Text>
           </TouchableOpacity>
         </View>
 
->>>>>>> 25b6534 (Initial commit with authentication and signup/signin fixes)
         <View style={styles.connectSection}>
           <Text style={styles.connectTitle}>Connect to Supabase</Text>
           <Text style={styles.connectDescription}>
