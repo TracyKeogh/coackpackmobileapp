@@ -3,6 +3,10 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert 
 import { Link, useRouter } from 'expo-router';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+<<<<<<< HEAD
+=======
+import { supabase } from '../supabaseClient';
+>>>>>>> 25b6534 (Initial commit with authentication and signup/signin fixes)
 
 export default function SignInScreen() {
   const [email, setEmail] = useState('');
@@ -25,6 +29,7 @@ export default function SignInScreen() {
     setIsLoading(true);
     
     try {
+<<<<<<< HEAD
       // In a real app, this would authenticate with your backend
       // For now, we'll simulate a successful sign in
       const userData = {
@@ -36,17 +41,94 @@ export default function SignInScreen() {
       
       await AsyncStorage.setItem('userData', JSON.stringify(userData));
       
+=======
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      if (error) {
+        if (error.message && error.message.toLowerCase().includes('email not confirmed')) {
+          Alert.alert(
+            'Email Not Confirmed',
+            'Please check your email and click the confirmation link before signing in.',
+            [
+              { text: 'Resend Verification Email', onPress: handleResendVerification },
+              { text: 'OK' }
+            ]
+          );
+        } else {
+          Alert.alert('Sign In Error', error.message);
+        }
+        setIsLoading(false);
+        return;
+      }
+      // After sign in, check if user_profiles row exists
+      const user = data.user;
+      if (user && user.id) {
+        if (!user.email_confirmed_at) {
+          Alert.alert('Email Not Confirmed', 'Please check your email and confirm your account before signing in.');
+          setIsLoading(false);
+          return;
+        }
+        const { data: profileRows, error: profileFetchError } = await supabase
+          .from('user_profiles')
+          .select('user_id')
+          .eq('user_id', user.id);
+        if (!profileFetchError && profileRows && profileRows.length === 0) {
+          // Insert profile if it doesn't exist
+          const fullName = user.user_metadata?.full_name || '';
+          const { error: profileInsertError } = await supabase
+            .from('user_profiles')
+            .insert([
+              {
+                user_id: user.id,
+                email: user.email,
+                full_name: fullName,
+                subscription: null
+              }
+            ]);
+          if (profileInsertError) {
+            Alert.alert('Profile Error', profileInsertError.message);
+            setIsLoading(false);
+            return;
+          }
+        }
+      }
+>>>>>>> 25b6534 (Initial commit with authentication and signup/signin fixes)
       Alert.alert('Success', 'Signed in successfully!', [
         { text: 'OK', onPress: () => router.replace('/(tabs)') }
       ]);
     } catch (error) {
+<<<<<<< HEAD
       console.error('Sign in error:', error);
+=======
+>>>>>>> 25b6534 (Initial commit with authentication and signup/signin fixes)
       Alert.alert('Error', 'Failed to sign in. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
+<<<<<<< HEAD
+=======
+  // Add resend verification logic
+  const handleResendVerification = async () => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+      if (error) {
+        Alert.alert('Resend Error', error.message);
+      } else {
+        Alert.alert('Verification Email Sent', 'A new verification email has been sent. Please check your inbox.');
+      }
+    } catch (error) {
+      Alert.alert('Resend Error', 'Failed to resend verification email.');
+    }
+  };
+
+>>>>>>> 25b6534 (Initial commit with authentication and signup/signin fixes)
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
