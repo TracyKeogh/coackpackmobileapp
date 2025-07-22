@@ -195,3 +195,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 8,
+  },
+  buttonDisabled: {
+    backgroundColor: '#9ca3af',
+  },
+  signInButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  footerText: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  signUpLink: {
+    marginLeft: 4,
+  },
+  signUpLinkText: {
+    fontSize: 14,
+    color: '#8b5cf6',
+    fontWeight: '600',
+  },
+});
