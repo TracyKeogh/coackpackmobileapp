@@ -1,54 +1,46 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Save, Calendar, ArrowLeft } from 'lucide-react-native';
+import { Save, Calendar, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { supabase } from '../../supabase/client';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function DiaryTab() {
   const params = useLocalSearchParams();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const isMountedRef = useRef(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [diaryEntry, setDiaryEntry] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [wordCount, setWordCount] = useState(0);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    isMountedRef.current = true;
     if (params.date) {
       setSelectedDate(new Date(params.date as string));
     }
-    
-    return () => {
-      isMountedRef.current = false;
-    };
   }, [params.date]);
 
   useEffect(() => {
-    checkAuthAndLoadEntry();
-  }, [selectedDate]);
+    checkAuth();
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      loadDiaryEntry();
+    }
+  }, [selectedDate, user]);
 
   useEffect(() => {
     const words = diaryEntry.trim().split(/\s+/).filter(word => word.length > 0);
-    if (isMountedRef.current) {
-      setWordCount(words.length);
-    }
+    setWordCount(words.length);
   }, [diaryEntry]);
 
-  const checkAuthAndLoadEntry = async () => {
-    if (!isMountedRef.current) return;
-    
+  const checkAuth = async () => {
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) throw error;
       
       if (!user) {
-        if (isMountedRef.current) {
-          setCurrentUser(null);
-        }
         Alert.alert(
           'Sign In Required',
           'Please sign in to access your diary entries.',
@@ -60,98 +52,71 @@ export default function DiaryTab() {
         return;
       }
       
-      if (isMountedRef.current) {
-        setCurrentUser(user);
-      }
-      await loadDiaryEntryFromSupabase(user);
+      setUser(user);
     } catch (error) {
-      console.error('Auth check failed:', error);
-      if (isMountedRef.current) {
-        setCurrentUser(null);
-      }
+      console.error('Auth error:', error);
+      Alert.alert('Error', 'Authentication failed. Please try again.');
     }
   };
 
-  const loadDiaryEntryFromSupabase = async (user: any) => {
-    if (!isMountedRef.current) return;
+  const loadDiaryEntry = async () => {
+    if (!user) return;
     
-    if (isMountedRef.current) {
-      setIsLoading(true);
-    }
+    setIsLoading(true);
     try {
       const dateKey = formatDate(selectedDate);
-      
       const { data, error } = await supabase
         .from('user_notes')
         .select('content')
         .eq('user_id', user.id)
         .eq('note_type', 'diary')
-        .eq('note_key', dateKey)
+        .eq('date', dateKey)
         .single();
 
-      if (error && error.code === 'PGRST116') {
-        // No entry found, just set empty
-        if (isMountedRef.current) {
-          setDiaryEntry('');
-        }
-      } else if (error) {
+      if (error && error.code !== 'PGRST116') {
         console.error('Error loading diary entry:', error);
-        Alert.alert('Error', 'Failed to load diary entry. Please try again.');
-        if (isMountedRef.current) {
-          setDiaryEntry('');
-        }
-      } else {
-        if (isMountedRef.current) {
-          setDiaryEntry(data?.content || '');
-        }
+        throw error;
       }
+
+      setDiaryEntry(data?.content || '');
     } catch (error) {
-      console.error('Exception loading diary entry:', error);
-      Alert.alert('Error', 'Failed to load diary entry. Please try again.');
+      console.error('Error loading diary entry:', error);
+      Alert.alert('Error', 'Failed to load diary entry.');
     } finally {
-      if (isMountedRef.current) {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     }
   };
 
-  const saveDiaryEntryToSupabase = async () => {
-    if (!currentUser) {
+  const saveDiaryEntry = async () => {
+    if (!user) {
       Alert.alert('Error', 'Please sign in to save your diary entry.');
       return;
     }
 
-    if (isMountedRef.current) {
-      setIsSaving(true);
-    }
+    setIsSaving(true);
     try {
       const dateKey = formatDate(selectedDate);
-      
       const { error } = await supabase
         .from('user_notes')
         .upsert({
-          user_id: currentUser.id,
+          user_id: user.id,
           note_type: 'diary',
-          note_key: dateKey,
+          date: dateKey,
           content: diaryEntry,
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'user_id,note_type,note_key'
+          updated_at: new Date().toISOString()
         });
 
       if (error) {
         console.error('Error saving diary entry:', error);
-        Alert.alert('Error', 'Failed to save diary entry. Please try again.');
-      } else {
-        Alert.alert('Success', 'Diary entry saved successfully!');
+        throw error;
       }
+
+      Alert.alert('Success', 'Diary entry saved successfully!');
     } catch (error) {
-      console.error('Exception saving diary entry:', error);
+      console.error('Error saving diary entry:', error);
       Alert.alert('Error', 'Failed to save diary entry. Please try again.');
     } finally {
-      if (isMountedRef.current) {
-        setIsSaving(false);
-      }
+      setIsSaving(false);
     }
   };
 
@@ -182,176 +147,265 @@ export default function DiaryTab() {
     setSelectedDate(new Date());
   };
 
+  const navigateToCalendar = () => {
+    router.push('/');
+  };
+
+  const isToday = (date: Date) => {
+    const today = new Date();
+    return date.toDateString() === today.toDateString();
+  };
+
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.authPrompt}>
+          <Text style={styles.authTitle}>Sign In Required</Text>
+          <Text style={styles.authDescription}>
+            Please sign in to access your diary entries and sync with your Coach Pack account.
+          </Text>
+          <TouchableOpacity
+            style={styles.signInButton}
+            onPress={() => router.push('/(auth)/signin')}
+          >
+            <Text style={styles.signInButtonText}>Sign In</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
-    <ScrollView style={[styles.container, { paddingBottom: insets.bottom }]}>
+    <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigateDate('prev')} style={styles.navButton}>
-          <ArrowLeft size={24} color="#4CAF50" />
+        <TouchableOpacity onPress={navigateToCalendar} style={styles.backButton}>
+          <ArrowLeft size={24} color="#2563eb" />
         </TouchableOpacity>
         
-        <TouchableOpacity onPress={goToToday} style={styles.dateContainer}>
-          <Text style={styles.dateText}>{formatDisplayDate(selectedDate)}</Text>
-          {formatDate(selectedDate) === formatDate(new Date()) && (
-            <Text style={styles.todayBadge}>Today</Text>
-          )}
-        </TouchableOpacity>
+        <View style={styles.dateNavigation}>
+          <TouchableOpacity
+            style={styles.navButton}
+            onPress={() => navigateDate('prev')}
+          >
+            <ChevronLeft size={20} color="#6b7280" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity onPress={goToToday} style={styles.dateInfo}>
+            <Text style={styles.dateText}>{formatDisplayDate(selectedDate)}</Text>
+            {isToday(selectedDate) && <Text style={styles.todayBadge}>Today</Text>}
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.navButton}
+            onPress={() => navigateDate('next')}
+          >
+            <ChevronRight size={20} color="#6b7280" />
+          </TouchableOpacity>
+        </View>
         
-        <TouchableOpacity onPress={() => navigateDate('next')} style={styles.navButton}>
-          <ArrowLeft size={24} color="#4CAF50" style={{ transform: [{ rotate: '180deg' }] }} />
+        <TouchableOpacity onPress={navigateToCalendar} style={styles.calendarButton}>
+          <Calendar size={24} color="#2563eb" />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.editorContainer}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Loading your diary entry...</Text>
+            <Text style={styles.loadingText}>Loading...</Text>
           </View>
         ) : (
-          <>
+          <View style={styles.editorContainer}>
             <TextInput
-              style={styles.textEditor}
+              style={styles.textInput}
+              placeholder="What happened today? Share your thoughts, feelings, and experiences..."
+              placeholderTextColor="#94a3b8"
               value={diaryEntry}
               onChangeText={setDiaryEntry}
-              placeholder="Write your thoughts for today..."
-              placeholderTextColor="#999"
               multiline
               textAlignVertical="top"
-              editable={!!currentUser}
+              autoFocus={!diaryEntry}
+              editable={!isSaving}
             />
-            
-            <View style={styles.footer}>
-              <Text style={styles.wordCount}>{wordCount} words</Text>
-              
-              <TouchableOpacity 
-                style={[styles.saveButton, (!currentUser || isSaving) && styles.saveButtonDisabled]} 
-                onPress={saveDiaryEntryToSupabase}
-                disabled={!currentUser || isSaving}
-              >
-                <Save size={20} color="white" />
-                <Text style={styles.saveButtonText}>
-                  {isSaving ? 'Saving...' : 'Save Entry'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </>
+          </View>
         )}
-      </View>
 
-      <TouchableOpacity 
-        style={styles.calendarButton}
-        onPress={() => router.push('/(tabs)/calendar')}
-      >
-        <Calendar size={20} color="#4CAF50" />
-        <Text style={styles.calendarButtonText}>Back to Calendar</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <View style={styles.stats}>
+          <Text style={styles.statsText}>
+            {wordCount} words • {diaryEntry.length} characters
+          </Text>
+        </View>
+      </ScrollView>
+
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={[styles.saveButton, (isLoading || isSaving) && styles.saveButtonDisabled]}
+          onPress={saveDiaryEntry}
+          disabled={isLoading || isSaving}
+        >
+          <Save size={20} color="#ffffff" />
+          <Text style={styles.saveButtonText}>
+            {isSaving ? 'Saving...' : 'Save Entry'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8fafc',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
     paddingTop: 60,
+    paddingHorizontal: 20,
     paddingBottom: 20,
-    backgroundColor: 'white',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 5,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+  },
+  calendarButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+  },
+  dateNavigation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    gap: 16,
   },
   navButton: {
-    padding: 10,
-  },
-  dateContainer: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 16,
+    backgroundColor: '#f3f4f6',
+  },
+  dateInfo: {
+    alignItems: 'center',
+    flex: 1,
   },
   dateText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#374151',
+    textAlign: 'center',
   },
   todayBadge: {
     fontSize: 12,
-    color: '#4CAF50',
-    marginTop: 4,
+    fontWeight: '500',
+    color: '#8b5cf6',
+    marginTop: 2,
   },
-  editorContainer: {
+  content: {
     flex: 1,
-    backgroundColor: 'white',
-    margin: 20,
-    borderRadius: 10,
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-    minHeight: 400,
+  },
+  authPrompt: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  authTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  authDescription: {
+    fontSize: 16,
+    color: '#6b7280',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  signInButton: {
+    backgroundColor: '#8b5cf6',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  signInButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 40,
   },
   loadingText: {
     fontSize: 16,
-    color: '#666',
+    color: '#6b7280',
   },
-  textEditor: {
+  editorContainer: {
     flex: 1,
+    marginBottom: 20,
+  },
+  textInput: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
     fontSize: 16,
     lineHeight: 24,
-    color: '#333',
+    color: '#1f2937',
+    minHeight: 400,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    textAlignVertical: 'top',
+  },
+  stats: {
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+  },
+  statsText: {
+    fontSize: 14,
+    color: '#64748b',
+    textAlign: 'center',
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 20,
-    paddingTop: 20,
+    padding: 20,
+    backgroundColor: '#ffffff',
     borderTopWidth: 1,
-    borderTopColor: '#eee',
-  },
-  wordCount: {
-    fontSize: 14,
-    color: '#666',
+    borderTopColor: '#e5e7eb',
   },
   saveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 5,
-    gap: 8,
-  },
-  saveButtonDisabled: {
-    opacity: 0.5,
-  },
-  saveButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  calendarButton: {
+    backgroundColor: '#8b5cf6',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 15,
-    marginHorizontal: 20,
-    marginBottom: 20,
+    paddingVertical: 16,
+    borderRadius: 12,
     gap: 8,
   },
-  calendarButtonText: {
+  saveButtonDisabled: {
+    backgroundColor: '#9ca3af',
+  },
+  saveButtonText: {
+    color: '#ffffff',
     fontSize: 16,
-    color: '#4CAF50',
+    fontWeight: '600',
   },
 });
