@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../supabaseClient';
+import { signIn, getUserProfile, testSupabaseConnection } from '../../supabase/client';
 
 export default function SignInScreen() {
   const [email, setEmail] = useState('');
@@ -26,102 +25,74 @@ export default function SignInScreen() {
     setIsLoading(true);
     
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      if (error) {
-        if (error.message && error.message.toLowerCase().includes('email not confirmed')) {
-          Alert.alert(
-            'Email Not Confirmed',
-            'Please check your email and click the confirmation link before signing in.',
-            [
-              { text: 'Resend Verification Email', onPress: handleResendVerification },
-              { text: 'OK' }
-            ]
-          );
-        } else {
-          Alert.alert('Sign In Error', error.message);
-        }
-        setIsLoading(false);
+      console.log('Testing Supabase connection...');
+      const isConnected = await testSupabaseConnection();
+      
+      if (!isConnected) {
+        Alert.alert('Connection Error', 'Unable to connect to the server. Please check your internet connection and try again.');
         return;
       }
-      // After sign in, check if user_profiles row exists
-      const user = data.user;
-      if (user && user.id) {
-        if (!user.email_confirmed_at) {
-          Alert.alert('Email Not Confirmed', 'Please check your email and confirm your account before signing in.');
-          setIsLoading(false);
-          return;
+
+      console.log('Attempting to sign in with:', email);
+      
+      // Authenticate with Supabase
+      const { data, error } = await signIn(email, password);
+      
+      if (error) {
+        console.error('Sign in error:', error);
+        
+        if (error.message.includes('Invalid login credentials')) {
+          Alert.alert('Sign In Failed', 'Invalid email or password. Please check your credentials and try again.');
+        } else if (error.message.includes('Email not confirmed')) {
+          Alert.alert('Email Not Verified', 'Please check your email and click the verification link before signing in.');
+        } else {
+          Alert.alert('Sign In Error', error.message || 'Failed to sign in. Please try again.');
         }
-        const { data: profileRows, error: profileFetchError } = await supabase
-          .from('user_profiles')
-          .select('user_id')
-          .eq('user_id', user.id);
-        if (!profileFetchError && profileRows && profileRows.length === 0) {
-          // Insert profile if it doesn't exist
-          const fullName = user.user_metadata?.full_name || '';
-          const { error: profileInsertError } = await supabase
-            .from('user_profiles')
-            .insert([
-              {
-                user_id: user.id,
-                email: user.email,
-                full_name: fullName,
-                subscription: null
-              }
-            ]);
-          if (profileInsertError) {
-            Alert.alert('Profile Error', profileInsertError.message);
-            setIsLoading(false);
-            return;
-          }
-        }
+        return;
       }
-      Alert.alert('Success', 'Signed in successfully!', [
-        { text: 'OK', onPress: () => router.replace('/(tabs)') }
-      ]);
+
+      if (data.user) {
+        console.log('Sign in successful for user:', data.user.id);
+        
+        // Get user profile
+        const { data: profile, error: profileError } = await getUserProfile(data.user.id);
+        
+        if (profileError) {
+          console.warn('Failed to load user profile:', profileError);
+          // Don't block signin if profile fetch fails
+        }
+        
+        console.log('User profile loaded:', profile);
+        
+        Alert.alert('Success', 'Signed in successfully!', [
+          { text: 'OK', onPress: () => router.replace('/(tabs)') }
+        ]);
+      } else {
+        Alert.alert('Error', 'Sign in failed. Please try again.');
+      }
     } catch (error) {
+      console.error('Sign in exception:', error);
       Alert.alert('Error', 'Failed to sign in. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Add resend verification logic
-  const handleResendVerification = async () => {
-    try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email,
-      });
-      if (error) {
-        Alert.alert('Resend Error', error.message);
-      } else {
-        Alert.alert('Verification Email Sent', 'A new verification email has been sent. Please check your inbox.');
-      }
-    } catch (error) {
-      Alert.alert('Resend Error', 'Failed to resend verification email.');
-    }
-  };
-
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
-        <Text style={styles.title}>Welcome Back</Text>
-        <Text style={styles.subtitle}>
-          Sign in to continue your journey to intentional living
-        </Text>
+        <View style={styles.header}>
+          <Text style={styles.title}>Welcome Back</Text>
+          <Text style={styles.subtitle}>Sign in to continue your daily focus journey</Text>
+        </View>
 
         <View style={styles.form}>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email Address</Text>
-            <View style={styles.inputContainer}>
-              <Mail size={20} color="#94a3b8" style={styles.inputIcon} />
+            <View style={styles.inputWrapper}>
+              <Mail size={20} color="#64748b" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Enter your email"
-                placeholderTextColor="#94a3b8"
+                placeholder="Email"
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -132,37 +103,31 @@ export default function SignInScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Password</Text>
-            <View style={styles.inputContainer}>
-              <Lock size={20} color="#94a3b8" style={styles.inputIcon} />
+            <View style={styles.inputWrapper}>
+              <Lock size={20} color="#64748b" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Enter your password"
-                placeholderTextColor="#94a3b8"
+                placeholder="Password"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
+                autoComplete="password"
               />
-              <TouchableOpacity
+              <TouchableOpacity 
                 onPress={() => setShowPassword(!showPassword)}
                 style={styles.eyeIcon}
               >
-                {showPassword ? (
-                  <EyeOff size={20} color="#94a3b8" />
-                ) : (
-                  <Eye size={20} color="#94a3b8" />
-                )}
+                {showPassword ? 
+                  <EyeOff size={20} color="#64748b" /> : 
+                  <Eye size={20} color="#64748b" />
+                }
               </TouchableOpacity>
             </View>
           </View>
 
-          <TouchableOpacity style={styles.forgotPassword}>
-            <Text style={styles.forgotPasswordText}>Forgot your password?</Text>
-          </TouchableOpacity>
-
           <TouchableOpacity
-            style={[styles.signInButton, isLoading && styles.signInButtonDisabled]}
+            style={[styles.signInButton, isLoading && styles.disabledButton]}
             onPress={handleSignIn}
             disabled={isLoading}
           >
@@ -171,10 +136,20 @@ export default function SignInScreen() {
             </Text>
           </TouchableOpacity>
 
+          <TouchableOpacity style={styles.forgotPasswordButton}>
+            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+          </TouchableOpacity>
+
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
           <View style={styles.signUpContainer}>
-            <Text style={styles.signUpText}>Don't have an account? </Text>
+            <Text style={styles.signUpText}>Don't have an account?</Text>
             <Link href="/(auth)/signup" style={styles.signUpLink}>
-              <Text style={styles.signUpLinkText}>Create account</Text>
+              <Text style={styles.signUpLinkText}>Sign Up</Text>
             </Link>
           </View>
         </View>
@@ -189,94 +164,110 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   content: {
-    padding: 24,
-    paddingTop: 80,
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 60,
+    paddingBottom: 40,
+  },
+  header: {
+    marginBottom: 40,
   },
   title: {
     fontSize: 32,
-    fontWeight: '700',
-    color: '#1e293b',
-    textAlign: 'center',
-    marginBottom: 12,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#64748b',
-    textAlign: 'center',
+    color: '#6b7280',
     lineHeight: 24,
-    marginBottom: 48,
   },
   form: {
-    gap: 20,
+    flex: 1,
   },
   inputGroup: {
-    gap: 8,
+    marginBottom: 20,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1e293b',
-  },
-  inputContainer: {
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#d1d5db',
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    backgroundColor: '#ffffff',
   },
   inputIcon: {
     marginRight: 12,
   },
   input: {
     flex: 1,
+    height: 56,
     fontSize: 16,
-    color: '#1e293b',
+    color: '#1f2937',
   },
   eyeIcon: {
-    padding: 4,
-  },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-  },
-  forgotPasswordText: {
-    fontSize: 14,
-    color: '#8b5cf6',
-    fontWeight: '600',
+    padding: 8,
   },
   signInButton: {
-    backgroundColor: '#8b5cf6',
-    paddingVertical: 18,
+    backgroundColor: '#2563eb',
     borderRadius: 12,
+    height: 56,
     alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
     marginTop: 12,
   },
-  signInButtonDisabled: {
-    backgroundColor: '#94a3b8',
+  disabledButton: {
+    opacity: 0.6,
   },
   signInButtonText: {
     color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  forgotPasswordButton: {
+    alignItems: 'center',
+    padding: 12,
+    marginBottom: 24,
+  },
+  forgotPasswordText: {
+    fontSize: 14,
+    color: '#2563eb',
+    fontWeight: '500',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#e5e7eb',
+  },
+  dividerText: {
+    paddingHorizontal: 16,
+    fontSize: 14,
+    color: '#9ca3af',
   },
   signUpContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 32,
   },
   signUpText: {
-    fontSize: 16,
-    color: '#64748b',
+    fontSize: 14,
+    color: '#6b7280',
+    marginRight: 4,
   },
   signUpLink: {
-    marginLeft: 4,
+    padding: 4,
   },
   signUpLinkText: {
-    fontSize: 16,
-    color: '#8b5cf6',
-    fontWeight: '600',
+    fontSize: 14,
+    color: '#2563eb',
+    fontWeight: '500',
   },
 });
