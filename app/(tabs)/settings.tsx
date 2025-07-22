@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LogOut, User, FileText, Shield, HelpCircle, Info } from 'lucide-react-native';
 import { supabase } from '../../supabase/client';
 
 export default function SettingsTab() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -94,7 +96,7 @@ export default function SettingsTab() {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { paddingBottom: insets.bottom }]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Settings</Text>
       </View>
