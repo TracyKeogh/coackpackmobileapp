@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Dimensions, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, ChevronRight, Plus, X, Clock } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
@@ -103,6 +104,7 @@ export default function DailyFocusTab() {
   const [newEntry, setNewEntry] = useState('');
   const [showActionPool, setShowActionPool] = useState(false);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
+  const insets = useSafeAreaInsets();
   const router = useRouter();
 
   useEffect(() => {
@@ -245,7 +247,7 @@ export default function DailyFocusTab() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigateDate('prev')} style={styles.navButton}>
           <ChevronLeft size={24} color="#2563eb" />

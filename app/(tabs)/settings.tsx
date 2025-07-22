@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Trash2, Download, Upload, Info } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabaseClient';
 import { useRouter } from 'expo-router';
 
 export default function SettingsTab() {
   const [isLoading, setIsLoading] = useState(false);
+  const insets = useSafeAreaInsets();
   const router = useRouter();
 
   const clearAllEntries = () => {
@@ -73,7 +75,7 @@ export default function SettingsTab() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Settings</Text>
       </View>

@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Save, Calendar, ArrowLeft } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { saveDiaryEntry, loadDiaryEntry, getCurrentUser } from '../../supabase/client';
 
 export default function DiaryTab() {
   const params = useLocalSearchParams();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [diaryEntry, setDiaryEntry] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -121,7 +123,7 @@ export default function DiaryTab() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { paddingBottom: insets.bottom }]}>
       <View style={styles.content}>
         <View style={styles.header}>
           <View style={styles.dateNavigation}>
