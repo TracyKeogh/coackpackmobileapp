@@ -1,345 +1,216 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { Link, useRouter } from 'expo-router';
-import { User, Mail, Lock, Eye, EyeOff, Check } from 'lucide-react-native';
-import { signUp, createUserProfile, testSupabaseConnection } from '../../supabase/client';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Mail, Lock, User } from 'lucide-react-native';
+import { supabase } from '../../supabase/client';
 
 export default function SignUpScreen() {
-  const [fullName, setFullName] = useState('');
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [fullName, setFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
 
   const handleSignUp = async () => {
-    // Validation
-    if (!fullName.trim()) {
-      Alert.alert('Error', 'Please enter your full name');
+    if (!email || !password || !fullName) {
+      Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
-    if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email address');
-      return;
-    }
-
-    if (!email.includes('@')) {
-      Alert.alert('Error', 'Please enter a valid email address');
-      return;
-    }
-
-    if (password.length < 8) {
-      Alert.alert('Error', 'Password must be at least 8 characters long');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
-      return;
-    }
-
-    if (!agreeToTerms) {
-      Alert.alert('Error', 'Please agree to the Terms of Service and Privacy Policy');
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
       return;
     }
 
     setIsLoading(true);
-    
     try {
-      console.log('Testing Supabase connection...');
-      const isConnected = await testSupabaseConnection();
-      
-      if (!isConnected) {
-        Alert.alert('Connection Error', 'Unable to connect to the server. Please check your internet connection and try again.');
-        return;
-      }
-
-      console.log('Creating user account...');
-      // Create user with Supabase Auth
-      const { data, error } = await signUp(email, password, fullName);
-      
-      if (error) {
-        console.error('Signup error:', error);
-        
-        if (error.message.includes('User already registered')) {
-          Alert.alert('Account Exists', 'This email is already registered. Please sign in instead.');
-        } else if (error.message.includes('Password should be at least')) {
-          Alert.alert('Password Error', 'Password must be at least 6 characters long.');
-        } else {
-          Alert.alert('Signup Error', error.message || 'Failed to create account. Please try again.');
+      const { data, error } = await supabase.auth.signUp({
+        email: email.toLowerCase().trim(),
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          }
         }
-        return;
-      }
+      });
+
+      if (error) throw error;
 
       if (data.user) {
-        console.log('User created successfully:', data.user.id);
-        
         // Create user profile
-        const { error: profileError } = await createUserProfile(
-          data.user.id,
-          email,
-          fullName
-        );
-        
+        const { error: profileError } = await supabase
+          .from('user_profiles')
+          .insert({
+            id: data.user.id,
+            email: data.user.email,
+            full_name: fullName,
+          });
+
         if (profileError) {
-          console.warn('Profile creation failed:', profileError);
-          // Don't block signup if profile creation fails
+          console.error('Profile creation error:', profileError);
         }
-        
+
         Alert.alert(
           'Success', 
           'Account created successfully! Please check your email to verify your account.',
-          [
-            { text: 'OK', onPress: () => router.replace('/(auth)/signin') }
-          ]
+          [{ text: 'OK', onPress: () => router.replace('/(auth)/signin') }]
         );
-      } else {
-        Alert.alert('Error', 'Failed to create account. Please try again.');
       }
-    } catch (error) {
-      console.error('Signup exception:', error);
-      Alert.alert('Error', 'Failed to create account. Please try again.');
+    } catch (error: any) {
+      console.error('Sign up error:', error);
+      Alert.alert('Sign Up Failed', error.message || 'Failed to create account');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Get started with your daily focus journey</Text>
+        <Text style={styles.title}>Create Account</Text>
+        <Text style={styles.subtitle}>Start your coaching journey today</Text>
+
+        <View style={styles.inputContainer}>
+          <User size={20} color="#666" style={styles.inputIcon} />
+          <TextInput
+            style={styles.input}
+            placeholder="Full Name"
+            placeholderTextColor="#999"
+            value={fullName}
+            onChangeText={setFullName}
+            autoCapitalize="words"
+          />
         </View>
 
-        <View style={styles.form}>
-          <View style={styles.inputGroup}>
-            <View style={styles.inputWrapper}>
-              <User size={20} color="#64748b" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Full Name"
-                value={fullName}
-                onChangeText={setFullName}
-                autoCapitalize="words"
-                autoComplete="name"
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <View style={styles.inputWrapper}>
-              <Mail size={20} color="#64748b" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <View style={styles.inputWrapper}>
-              <Lock size={20} color="#64748b" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoComplete="password"
-              />
-              <TouchableOpacity 
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeIcon}
-              >
-                {showPassword ? 
-                  <EyeOff size={20} color="#64748b" /> : 
-                  <Eye size={20} color="#64748b" />
-                }
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <View style={styles.inputWrapper}>
-              <Lock size={20} color="#64748b" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Confirm Password"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry={!showConfirmPassword}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity 
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                style={styles.eyeIcon}
-              >
-                {showConfirmPassword ? 
-                  <EyeOff size={20} color="#64748b" /> : 
-                  <Eye size={20} color="#64748b" />
-                }
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.termsContainer}>
-            <TouchableOpacity 
-              style={styles.checkbox}
-              onPress={() => setAgreeToTerms(!agreeToTerms)}
-            >
-              {agreeToTerms && <Check size={16} color="#ffffff" />}
-            </TouchableOpacity>
-            <Text style={styles.termsText}>
-              I agree to the{' '}
-              <Text style={styles.link}>Terms of Service</Text>
-              {' '}and{' '}
-              <Text style={styles.link}>Privacy Policy</Text>
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.signupButton, isLoading && styles.disabledButton]}
-            onPress={handleSignUp}
-            disabled={isLoading}
-          >
-            <Text style={styles.signupButtonText}>
-              {isLoading ? 'Creating Account...' : 'Create Account'}
-            </Text>
-          </TouchableOpacity>
-
-          <View style={styles.signInContainer}>
-            <Text style={styles.signInText}>Already have an account?</Text>
-            <Link href="/(auth)/signin" style={styles.signInLink}>
-              <Text style={styles.signInLinkText}>Sign In</Text>
-            </Link>
-          </View>
+        <View style={styles.inputContainer}>
+          <Mail size={20} color="#666" style={styles.inputIcon} />
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="#999"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
         </View>
+
+        <View style={styles.inputContainer}>
+          <Lock size={20} color="#666" style={styles.inputIcon} />
+          <TextInput
+            style={styles.input}
+            placeholder="Password (min 6 characters)"
+            placeholderTextColor="#999"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoCapitalize="none"
+          />
+        </View>
+
+        <TouchableOpacity 
+          style={[styles.button, isLoading && styles.buttonDisabled]} 
+          onPress={handleSignUp}
+          disabled={isLoading}
+        >
+          <Text style={styles.buttonText}>
+            {isLoading ? 'Creating Account...' : 'Sign Up'}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.linkButton} 
+          onPress={() => router.push('/(auth)/signin')}
+        >
+          <Text style={styles.linkText}>
+            Already have an account? <Text style={styles.linkTextBold}>Sign In</Text>
+          </Text>
+        </TouchableOpacity>
       </View>
-    </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f5f5f5',
   },
   content: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
-  },
-  header: {
-    marginBottom: 40,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 8,
+    color: '#333',
+    marginBottom: 10,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: '#6b7280',
-    lineHeight: 24,
+    color: '#666',
+    marginBottom: 40,
+    textAlign: 'center',
   },
-  form: {
-    flex: 1,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  inputWrapper: {
+  inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    marginBottom: 15,
+    paddingHorizontal: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
   inputIcon: {
-    marginRight: 12,
+    marginRight: 10,
   },
   input: {
     flex: 1,
-    height: 56,
+    height: 50,
     fontSize: 16,
-    color: '#1f2937',
+    color: '#333',
   },
-  eyeIcon: {
-    padding: 8,
-  },
-  termsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 2,
-    borderColor: '#2563eb',
-    borderRadius: 4,
-    marginRight: 12,
-    alignItems: 'center',
+  button: {
+    backgroundColor: '#4CAF50',
+    height: 50,
+    borderRadius: 10,
     justifyContent: 'center',
-    backgroundColor: '#2563eb',
-  },
-  termsText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#6b7280',
-    lineHeight: 20,
-  },
-  link: {
-    color: '#2563eb',
-    fontWeight: '500',
-  },
-  signupButton: {
-    backgroundColor: '#2563eb',
-    borderRadius: 12,
-    height: 56,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
+    marginTop: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
   },
-  disabledButton: {
-    opacity: 0.6,
+  buttonDisabled: {
+    opacity: 0.7,
   },
-  signupButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
+  buttonText: {
+    color: 'white',
+    fontSize: 18,
     fontWeight: '600',
   },
-  signInContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+  linkButton: {
+    marginTop: 20,
     alignItems: 'center',
   },
-  signInText: {
+  linkText: {
+    color: '#666',
     fontSize: 14,
-    color: '#6b7280',
-    marginRight: 4,
   },
-  signInLink: {
-    padding: 4,
-  },
-  signInLinkText: {
-    fontSize: 14,
-    color: '#2563eb',
-    fontWeight: '500',
+  linkTextBold: {
+    color: '#4CAF50',
+    fontWeight: '600',
   },
 });
