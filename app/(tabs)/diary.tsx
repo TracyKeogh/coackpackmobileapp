@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Save, Calendar, ArrowLeft } from 'lucide-react-native';
 import { supabase } from '../../supabase/client';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function DiaryTab() {
   const params = useLocalSearchParams();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const isMountedRef = useRef(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [diaryEntry, setDiaryEntry] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -15,9 +19,14 @@ export default function DiaryTab() {
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
+    isMountedRef.current = true;
     if (params.date) {
       setSelectedDate(new Date(params.date as string));
     }
+    
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [params.date]);
 
   useEffect(() => {
@@ -26,15 +35,21 @@ export default function DiaryTab() {
 
   useEffect(() => {
     const words = diaryEntry.trim().split(/\s+/).filter(word => word.length > 0);
-    setWordCount(words.length);
+    if (isMountedRef.current) {
+      setWordCount(words.length);
+    }
   }, [diaryEntry]);
 
   const checkAuthAndLoadEntry = async () => {
+    if (!isMountedRef.current) return;
+    
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
       
       if (!user) {
-        setCurrentUser(null);
+        if (isMountedRef.current) {
+          setCurrentUser(null);
+        }
         Alert.alert(
           'Sign In Required',
           'Please sign in to access your diary entries.',
@@ -46,16 +61,24 @@ export default function DiaryTab() {
         return;
       }
       
-      setCurrentUser(user);
+      if (isMountedRef.current) {
+        setCurrentUser(user);
+      }
       await loadDiaryEntryFromSupabase(user);
     } catch (error) {
       console.error('Auth check failed:', error);
-      setCurrentUser(null);
+      if (isMountedRef.current) {
+        setCurrentUser(null);
+      }
     }
   };
 
   const loadDiaryEntryFromSupabase = async (user: any) => {
-    setIsLoading(true);
+    if (!isMountedRef.current) return;
+    
+    if (isMountedRef.current) {
+      setIsLoading(true);
+    }
     try {
       const dateKey = formatDate(selectedDate);
       
@@ -69,19 +92,27 @@ export default function DiaryTab() {
 
       if (error && error.code === 'PGRST116') {
         // No entry found, just set empty
-        setDiaryEntry('');
+        if (isMountedRef.current) {
+          setDiaryEntry('');
+        }
       } else if (error) {
         console.error('Error loading diary entry:', error);
         Alert.alert('Error', 'Failed to load diary entry. Please try again.');
-        setDiaryEntry('');
+        if (isMountedRef.current) {
+          setDiaryEntry('');
+        }
       } else {
-        setDiaryEntry(data?.content || '');
+        if (isMountedRef.current) {
+          setDiaryEntry(data?.content || '');
+        }
       }
     } catch (error) {
       console.error('Exception loading diary entry:', error);
       Alert.alert('Error', 'Failed to load diary entry. Please try again.');
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -91,7 +122,9 @@ export default function DiaryTab() {
       return;
     }
 
-    setIsSaving(true);
+    if (isMountedRef.current) {
+      setIsSaving(true);
+    }
     try {
       const dateKey = formatDate(selectedDate);
       
@@ -117,7 +150,9 @@ export default function DiaryTab() {
       console.error('Exception saving diary entry:', error);
       Alert.alert('Error', 'Failed to save diary entry. Please try again.');
     } finally {
-      setIsSaving(false);
+      if (isMountedRef.current) {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -149,7 +184,7 @@ export default function DiaryTab() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { paddingBottom: insets.bottom }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigateDate('prev')} style={styles.navButton}>
           <ArrowLeft size={24} color="#4CAF50" />
