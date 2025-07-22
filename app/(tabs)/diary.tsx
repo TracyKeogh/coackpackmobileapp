@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Save, Calendar, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { Save, Calendar, ArrowLeft } from 'lucide-react-native';
 import { supabase } from '../../supabase/client';
 
 export default function DiaryTab() {
@@ -10,7 +10,6 @@ export default function DiaryTab() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [diaryEntry, setDiaryEntry] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const [user, setUser] = useState(null);
 
@@ -93,7 +92,7 @@ export default function DiaryTab() {
       return;
     }
 
-    setIsSaving(true);
+    setIsLoading(true);
     try {
       const dateKey = formatDate(selectedDate);
       const { error } = await supabase
@@ -116,35 +115,21 @@ export default function DiaryTab() {
       console.error('Error saving diary entry:', error);
       Alert.alert('Error', 'Failed to save diary entry. Please try again.');
     } finally {
-      setIsSaving(false);
+      setIsLoading(false);
     }
   };
 
-  const formatDate = (date: Date): string => {
+  const formatDate = (date: Date) => {
     return date.toISOString().split('T')[0];
   };
 
-  const formatDisplayDate = (date: Date): string => {
+  const formatDisplayDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
-      day: 'numeric',
+      day: 'numeric'
     });
-  };
-
-  const navigateDate = (direction: 'prev' | 'next') => {
-    const newDate = new Date(selectedDate);
-    if (direction === 'prev') {
-      newDate.setDate(newDate.getDate() - 1);
-    } else {
-      newDate.setDate(newDate.getDate() + 1);
-    }
-    setSelectedDate(newDate);
-  };
-
-  const goToToday = () => {
-    setSelectedDate(new Date());
   };
 
   const navigateToCalendar = () => {
@@ -181,53 +166,28 @@ export default function DiaryTab() {
         <TouchableOpacity onPress={navigateToCalendar} style={styles.backButton}>
           <ArrowLeft size={24} color="#2563eb" />
         </TouchableOpacity>
-        
-        <View style={styles.dateNavigation}>
-          <TouchableOpacity
-            style={styles.navButton}
-            onPress={() => navigateDate('prev')}
-          >
-            <ChevronLeft size={20} color="#6b7280" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity onPress={goToToday} style={styles.dateInfo}>
-            <Text style={styles.dateText}>{formatDisplayDate(selectedDate)}</Text>
-            {isToday(selectedDate) && <Text style={styles.todayBadge}>Today</Text>}
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.navButton}
-            onPress={() => navigateDate('next')}
-          >
-            <ChevronRight size={20} color="#6b7280" />
-          </TouchableOpacity>
+        <View style={styles.dateInfo}>
+          <Text style={styles.dateText}>{formatDisplayDate(selectedDate)}</Text>
+          {isToday(selectedDate) && <Text style={styles.todayBadge}>Today</Text>}
         </View>
-        
         <TouchableOpacity onPress={navigateToCalendar} style={styles.calendarButton}>
           <Calendar size={24} color="#2563eb" />
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Loading...</Text>
-          </View>
-        ) : (
-          <View style={styles.editorContainer}>
-            <TextInput
-              style={styles.textInput}
-              placeholder="What happened today? Share your thoughts, feelings, and experiences..."
-              placeholderTextColor="#94a3b8"
-              value={diaryEntry}
-              onChangeText={setDiaryEntry}
-              multiline
-              textAlignVertical="top"
-              autoFocus={!diaryEntry}
-              editable={!isSaving}
-            />
-          </View>
-        )}
+        <View style={styles.editorContainer}>
+          <TextInput
+            style={styles.textInput}
+            placeholder="What happened today? Share your thoughts, feelings, and experiences..."
+            placeholderTextColor="#94a3b8"
+            value={diaryEntry}
+            onChangeText={setDiaryEntry}
+            multiline
+            textAlignVertical="top"
+            autoFocus={!diaryEntry}
+          />
+        </View>
 
         <View style={styles.stats}>
           <Text style={styles.statsText}>
@@ -238,13 +198,13 @@ export default function DiaryTab() {
 
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[styles.saveButton, (isLoading || isSaving) && styles.saveButtonDisabled]}
+          style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
           onPress={saveDiaryEntry}
-          disabled={isLoading || isSaving}
+          disabled={isLoading}
         >
           <Save size={20} color="#ffffff" />
           <Text style={styles.saveButtonText}>
-            {isSaving ? 'Saving...' : 'Save Entry'}
+            {isLoading ? 'Saving...' : 'Save Entry'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -256,68 +216,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 20,
-    backgroundColor: '#f3f4f6',
-  },
-  calendarButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 20,
-    backgroundColor: '#f3f4f6',
-  },
-  dateNavigation: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-    gap: 16,
-  },
-  navButton: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 16,
-    backgroundColor: '#f3f4f6',
-  },
-  dateInfo: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  dateText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-    textAlign: 'center',
-  },
-  todayBadge: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#8b5cf6',
-    marginTop: 2,
-  },
-  content: {
-    flex: 1,
-    padding: 20,
   },
   authPrompt: {
     flex: 1,
@@ -350,15 +248,52 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  loadingContainer: {
-    flex: 1,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 40,
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
   },
-  loadingText: {
+  calendarButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+  },
+  dateInfo: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  dateText: {
     fontSize: 16,
-    color: '#6b7280',
+    fontWeight: '600',
+    color: '#374151',
+    textAlign: 'center',
+  },
+  todayBadge: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#8b5cf6',
+    marginTop: 2,
+  },
+  content: {
+    flex: 1,
+    padding: 20,
   },
   editorContainer: {
     flex: 1,
