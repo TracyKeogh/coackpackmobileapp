@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { User, Mail, Lock, Eye, EyeOff, Check } from 'lucide-react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../supabaseClient';
+import { signUp, createUserProfile, testSupabaseConnection } from '../../supabase/client';
 
 export default function SignUpScreen() {
   const [fullName, setFullName] = useState('');
@@ -17,6 +16,7 @@ export default function SignUpScreen() {
   const router = useRouter();
 
   const handleSignUp = async () => {
+    // Validation
     if (!fullName.trim()) {
       Alert.alert('Error', 'Please enter your full name');
       return;
@@ -50,21 +50,58 @@ export default function SignUpScreen() {
     setIsLoading(true);
     
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: fullName } }
-      });
-      if (error) {
-        Alert.alert('Sign Up Error', error.message);
-        setIsLoading(false);
+      console.log('Testing Supabase connection...');
+      const isConnected = await testSupabaseConnection();
+      
+      if (!isConnected) {
+        Alert.alert('Connection Error', 'Unable to connect to the server. Please check your internet connection and try again.');
         return;
       }
-      // Always show message to check email, do not create profile or route to dashboard
-      Alert.alert('Success', 'Account created! Please check your email to confirm your account. You can sign in after verifying your email.', [
-        { text: 'OK', onPress: () => router.replace('/(auth)/signin') }
-      ]);
+
+      console.log('Creating user account...');
+      // Create user with Supabase Auth
+      const { data, error } = await signUp(email, password, fullName);
+      
+      if (error) {
+        console.error('Signup error:', error);
+        
+        if (error.message.includes('User already registered')) {
+          Alert.alert('Account Exists', 'This email is already registered. Please sign in instead.');
+        } else if (error.message.includes('Password should be at least')) {
+          Alert.alert('Password Error', 'Password must be at least 6 characters long.');
+        } else {
+          Alert.alert('Signup Error', error.message || 'Failed to create account. Please try again.');
+        }
+        return;
+      }
+
+      if (data.user) {
+        console.log('User created successfully:', data.user.id);
+        
+        // Create user profile
+        const { error: profileError } = await createUserProfile(
+          data.user.id,
+          email,
+          fullName
+        );
+        
+        if (profileError) {
+          console.warn('Profile creation failed:', profileError);
+          // Don't block signup if profile creation fails
+        }
+        
+        Alert.alert(
+          'Success', 
+          'Account created successfully! Please check your email to verify your account.',
+          [
+            { text: 'OK', onPress: () => router.replace('/(auth)/signin') }
+          ]
+        );
+      } else {
+        Alert.alert('Error', 'Failed to create account. Please try again.');
+      }
     } catch (error) {
+      console.error('Signup exception:', error);
       Alert.alert('Error', 'Failed to create account. Please try again.');
     } finally {
       setIsLoading(false);
@@ -74,28 +111,18 @@ export default function SignUpScreen() {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
-        <Text style={styles.title}>Create Your Account</Text>
-        <Text style={styles.subtitle}>
-          Join Coach Pack and start your journey to intentional living
-        </Text>
-
-        <View style={styles.planCard}>
-          <View style={styles.planHeader}>
-            <Text style={styles.planTitle}>Free Toolkit</Text>
-            <Text style={styles.planPrice}>Free</Text>
-          </View>
-          <Text style={styles.planDescription}>Essential daily planning tools</Text>
+        <View style={styles.header}>
+          <Text style={styles.title}>Create Account</Text>
+          <Text style={styles.subtitle}>Get started with your daily focus journey</Text>
         </View>
 
         <View style={styles.form}>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Full Name</Text>
-            <View style={styles.inputContainer}>
-              <User size={20} color="#94a3b8" style={styles.inputIcon} />
+            <View style={styles.inputWrapper}>
+              <User size={20} color="#64748b" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Enter your full name"
-                placeholderTextColor="#94a3b8"
+                placeholder="Full Name"
                 value={fullName}
                 onChangeText={setFullName}
                 autoCapitalize="words"
@@ -105,13 +132,11 @@ export default function SignUpScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email Address</Text>
-            <View style={styles.inputContainer}>
-              <Mail size={20} color="#94a3b8" style={styles.inputIcon} />
+            <View style={styles.inputWrapper}>
+              <Mail size={20} color="#64748b" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Enter your email"
-                placeholderTextColor="#94a3b8"
+                placeholder="Email"
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -122,86 +147,81 @@ export default function SignUpScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Password</Text>
-            <View style={styles.inputContainer}>
-              <Lock size={20} color="#94a3b8" style={styles.inputIcon} />
+            <View style={styles.inputWrapper}>
+              <Lock size={20} color="#64748b" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Create a password (min 8 characters)"
-                placeholderTextColor="#94a3b8"
+                placeholder="Password"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
+                autoComplete="password"
               />
-              <TouchableOpacity
+              <TouchableOpacity 
                 onPress={() => setShowPassword(!showPassword)}
                 style={styles.eyeIcon}
               >
-                {showPassword ? (
-                  <EyeOff size={20} color="#94a3b8" />
-                ) : (
-                  <Eye size={20} color="#94a3b8" />
-                )}
+                {showPassword ? 
+                  <EyeOff size={20} color="#64748b" /> : 
+                  <Eye size={20} color="#64748b" />
+                }
               </TouchableOpacity>
             </View>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Confirm Password</Text>
-            <View style={styles.inputContainer}>
-              <Lock size={20} color="#94a3b8" style={styles.inputIcon} />
+            <View style={styles.inputWrapper}>
+              <Lock size={20} color="#64748b" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Confirm your password"
-                placeholderTextColor="#94a3b8"
+                placeholder="Confirm Password"
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showConfirmPassword}
                 autoCapitalize="none"
               />
-              <TouchableOpacity
+              <TouchableOpacity 
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                 style={styles.eyeIcon}
               >
-                {showConfirmPassword ? (
-                  <EyeOff size={20} color="#94a3b8" />
-                ) : (
-                  <Eye size={20} color="#94a3b8" />
-                )}
+                {showConfirmPassword ? 
+                  <EyeOff size={20} color="#64748b" /> : 
+                  <Eye size={20} color="#64748b" />
+                }
               </TouchableOpacity>
             </View>
           </View>
 
-          <TouchableOpacity
-            style={styles.checkboxContainer}
-            onPress={() => setAgreeToTerms(!agreeToTerms)}
-          >
-            <View style={[styles.checkbox, agreeToTerms && styles.checkboxChecked]}>
+          <View style={styles.termsContainer}>
+            <TouchableOpacity 
+              style={styles.checkbox}
+              onPress={() => setAgreeToTerms(!agreeToTerms)}
+            >
               {agreeToTerms && <Check size={16} color="#ffffff" />}
-            </View>
-            <Text style={styles.checkboxText}>
+            </TouchableOpacity>
+            <Text style={styles.termsText}>
               I agree to the{' '}
               <Text style={styles.link}>Terms of Service</Text>
               {' '}and{' '}
               <Text style={styles.link}>Privacy Policy</Text>
             </Text>
-          </TouchableOpacity>
+          </View>
 
           <TouchableOpacity
-            style={[styles.createButton, isLoading && styles.createButtonDisabled]}
+            style={[styles.signupButton, isLoading && styles.disabledButton]}
             onPress={handleSignUp}
             disabled={isLoading}
           >
-            <Text style={styles.createButtonText}>
+            <Text style={styles.signupButtonText}>
               {isLoading ? 'Creating Account...' : 'Create Account'}
             </Text>
           </TouchableOpacity>
 
           <View style={styles.signInContainer}>
-            <Text style={styles.signInText}>Already have an account? </Text>
+            <Text style={styles.signInText}>Already have an account?</Text>
             <Link href="/(auth)/signin" style={styles.signInLink}>
-              <Text style={styles.signInLinkText}>Sign in</Text>
+              <Text style={styles.signInLinkText}>Sign In</Text>
             </Link>
           </View>
         </View>
@@ -216,144 +236,110 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   content: {
-    padding: 24,
+    flex: 1,
+    paddingHorizontal: 24,
     paddingTop: 60,
+    paddingBottom: 40,
+  },
+  header: {
+    marginBottom: 40,
   },
   title: {
     fontSize: 32,
-    fontWeight: '700',
-    color: '#1e293b',
-    textAlign: 'center',
-    marginBottom: 12,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#64748b',
-    textAlign: 'center',
+    color: '#6b7280',
     lineHeight: 24,
-    marginBottom: 32,
-  },
-  planCard: {
-    backgroundColor: '#f8fafc',
-    borderWidth: 2,
-    borderColor: '#8b5cf6',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 32,
-  },
-  planHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  planTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#8b5cf6',
-  },
-  planPrice: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#8b5cf6',
-  },
-  planDescription: {
-    fontSize: 14,
-    color: '#8b5cf6',
   },
   form: {
-    gap: 20,
+    flex: 1,
   },
   inputGroup: {
-    gap: 8,
+    marginBottom: 20,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1e293b',
-  },
-  inputContainer: {
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#d1d5db',
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    backgroundColor: '#ffffff',
   },
   inputIcon: {
     marginRight: 12,
   },
   input: {
     flex: 1,
+    height: 56,
     fontSize: 16,
-    color: '#1e293b',
+    color: '#1f2937',
   },
   eyeIcon: {
-    padding: 4,
+    padding: 8,
   },
-  checkboxContainer: {
+  termsContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    marginTop: 8,
+    alignItems: 'center',
+    marginBottom: 32,
   },
   checkbox: {
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: '#d1d5db',
+    borderColor: '#2563eb',
     borderRadius: 4,
+    marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 2,
+    backgroundColor: '#2563eb',
   },
-  checkboxChecked: {
-    backgroundColor: '#8b5cf6',
-    borderColor: '#8b5cf6',
-  },
-  checkboxText: {
+  termsText: {
     flex: 1,
     fontSize: 14,
-    color: '#64748b',
+    color: '#6b7280',
     lineHeight: 20,
   },
   link: {
-    color: '#8b5cf6',
-    fontWeight: '600',
+    color: '#2563eb',
+    fontWeight: '500',
   },
-  createButton: {
-    backgroundColor: '#8b5cf6',
-    paddingVertical: 18,
+  signupButton: {
+    backgroundColor: '#2563eb',
     borderRadius: 12,
+    height: 56,
     alignItems: 'center',
-    marginTop: 12,
+    justifyContent: 'center',
+    marginBottom: 24,
   },
-  createButtonDisabled: {
-    backgroundColor: '#94a3b8',
+  disabledButton: {
+    opacity: 0.6,
   },
-  createButtonText: {
+  signupButtonText: {
     color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
   },
   signInContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 24,
   },
   signInText: {
-    fontSize: 16,
-    color: '#64748b',
+    fontSize: 14,
+    color: '#6b7280',
+    marginRight: 4,
   },
   signInLink: {
-    marginLeft: 4,
+    padding: 4,
   },
   signInLinkText: {
-    fontSize: 16,
-    color: '#8b5cf6',
-    fontWeight: '600',
+    fontSize: 14,
+    color: '#2563eb',
+    fontWeight: '500',
   },
 });
