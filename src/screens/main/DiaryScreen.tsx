@@ -58,8 +58,8 @@ export default function DiaryScreen() {
         .from('user_notes')
         .select('content')
         .eq('user_id', user.id)
-        .eq('note_type', 'diary')
-        .eq('date', dateKey)
+        .eq('related_feature', 'diary')
+        .eq('title', dateKey)
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -84,17 +84,15 @@ export default function DiaryScreen() {
     setIsLoading(true);
     try {
       const dateKey = formatDate(selectedDate);
-      const now = new Date().toISOString();
-      
       const { error } = await supabase
         .from('user_notes')
         .upsert({
           user_id: user.id,
-          note_type: 'diary',
-          date: dateKey,
+          title: dateKey,
           content: diaryEntry,
-          created_at: now,
-          updated_at: now,
+          category: 'reflection',
+          related_feature: 'diary',
+          updated_at: new Date().toISOString()
         });
 
       if (error) {
