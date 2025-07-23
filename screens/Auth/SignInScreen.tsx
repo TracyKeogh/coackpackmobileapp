@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import { supabase } from '../../supabase/client';
 
@@ -9,7 +9,7 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
+  const navigation = useNavigation();
 
   const handleSignIn = async () => {
     if (!email.trim()) {
@@ -35,11 +35,9 @@ export default function SignInScreen() {
       }
 
       if (data.user) {
-        Alert.alert('Success', 'Signed in successfully!', [
-          { text: 'OK', onPress: () => router.replace('/(tabs)') }
-        ]);
+        Alert.alert('Success', 'Signed in successfully!');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Sign in error:', error);
       Alert.alert('Error', error.message || 'Failed to sign in. Please try again.');
     } finally {
@@ -114,9 +112,9 @@ export default function SignInScreen() {
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>Don't have an account? </Text>
-            <Link href="/(auth)/signup" style={styles.signUpLink}>
+            <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
               <Text style={styles.signUpLinkText}>Sign Up</Text>
-            </Link>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -213,9 +211,6 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 14,
     color: '#6b7280',
-  },
-  signUpLink: {
-    marginLeft: 4,
   },
   signUpLinkText: {
     fontSize: 14,

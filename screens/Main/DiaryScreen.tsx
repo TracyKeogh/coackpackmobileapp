@@ -1,23 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Save, Calendar, ArrowLeft } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Save, Calendar } from 'lucide-react-native';
 import { supabase } from '../../supabase/client';
 
-export default function DiaryTab() {
-  const params = useLocalSearchParams();
-  const router = useRouter();
+export default function DiaryScreen() {
+  const insets = useSafeAreaInsets();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [diaryEntry, setDiaryEntry] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const [user, setUser] = useState(null);
+  const isMounted = useRef(true);
 
   useEffect(() => {
-    if (params.date) {
-      setSelectedDate(new Date(params.date as string));
-    }
-  }, [params.date]);
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     checkAuth();
@@ -31,7 +32,9 @@ export default function DiaryTab() {
 
   useEffect(() => {
     const words = diaryEntry.trim().split(/\s+/).filter(word => word.length > 0);
-    setWordCount(words.length);
+    if (isMounted.current) {
+      setWordCount(words.length);
+    }
   }, [diaryEntry]);
 
   const checkAuth = async () => {
@@ -42,24 +45,24 @@ export default function DiaryTab() {
       if (!user) {
         Alert.alert(
           'Sign In Required',
-          'Please sign in to access your diary entries.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Sign In', onPress: () => router.push('/(auth)/signin') }
-          ]
+          'Please sign in to access your diary entries.'
         );
         return;
       }
       
-      setUser(user);
+      if (isMounted.current) {
+        setUser(user);
+      }
     } catch (error) {
       console.error('Auth error:', error);
-      Alert.alert('Error', 'Authentication failed. Please try again.');
+      if (isMounted.current) {
+        Alert.alert('Error', 'Authentication failed. Please try again.');
+      }
     }
   };
 
   const loadDiaryEntry = async () => {
-    if (!user) return;
+    if (!user || !isMounted.current) return;
     
     setIsLoading(true);
     try {
@@ -68,8 +71,8 @@ export default function DiaryTab() {
         .from('user_notes')
         .select('content')
         .eq('user_id', user.id)
-        .eq('note_type', 'diary')
-        .eq('date', dateKey)
+        .eq('related_feature', 'diary')
+        .eq('title', dateKey)
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -77,12 +80,18 @@ export default function DiaryTab() {
         throw error;
       }
 
-      setDiaryEntry(data?.content || '');
+      if (isMounted.current) {
+        setDiaryEntry(data?.content || '');
+      }
     } catch (error) {
       console.error('Error loading diary entry:', error);
-      Alert.alert('Error', 'Failed to load diary entry.');
+      if (isMounted.current) {
+        Alert.alert('Error', 'Failed to load diary entry.');
+      }
     } finally {
-      setIsLoading(false);
+      if (isMounted.current) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -92,6 +101,8 @@ export default function DiaryTab() {
       return;
     }
 
+    if (!isMounted.current) return;
+
     setIsLoading(true);
     try {
       const dateKey = formatDate(selectedDate);
@@ -99,9 +110,10 @@ export default function DiaryTab() {
         .from('user_notes')
         .upsert({
           user_id: user.id,
-          note_type: 'diary',
-          date: dateKey,
+          title: dateKey,
           content: diaryEntry,
+          category: 'reflection',
+          related_feature: 'diary',
           updated_at: new Date().toISOString()
         });
 
@@ -110,20 +122,26 @@ export default function DiaryTab() {
         throw error;
       }
 
-      Alert.alert('Success', 'Diary entry saved successfully!');
+      if (isMounted.current) {
+        Alert.alert('Success', 'Diary entry saved successfully!');
+      }
     } catch (error) {
       console.error('Error saving diary entry:', error);
-      Alert.alert('Error', 'Failed to save diary entry. Please try again.');
+      if (isMounted.current) {
+        Alert.alert('Error', 'Failed to save diary entry. Please try again.');
+      }
     } finally {
-      setIsLoading(false);
+      if (isMounted.current) {
+        setIsLoading(false);
+      }
     }
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date) => {
     return date.toISOString().split('T')[0];
   };
 
-  const formatDisplayDate = (date: Date) => {
+  const formatDisplayDate = (date) => {
     return date.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -132,45 +150,32 @@ export default function DiaryTab() {
     });
   };
 
-  const navigateToCalendar = () => {
-    router.push('/');
-  };
-
-  const isToday = (date: Date) => {
+  const isToday = (date) => {
     const today = new Date();
     return date.toDateString() === today.toDateString();
   };
 
   if (!user) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.authPrompt}>
           <Text style={styles.authTitle}>Sign In Required</Text>
           <Text style={styles.authDescription}>
             Please sign in to access your diary entries and sync with your Coach Pack account.
           </Text>
-          <TouchableOpacity
-            style={styles.signInButton}
-            onPress={() => router.push('/(auth)/signin')}
-          >
-            <Text style={styles.signInButtonText}>Sign In</Text>
-          </TouchableOpacity>
         </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={navigateToCalendar} style={styles.backButton}>
-          <ArrowLeft size={24} color="#2563eb" />
-        </TouchableOpacity>
         <View style={styles.dateInfo}>
           <Text style={styles.dateText}>{formatDisplayDate(selectedDate)}</Text>
           {isToday(selectedDate) && <Text style={styles.todayBadge}>Today</Text>}
         </View>
-        <TouchableOpacity onPress={navigateToCalendar} style={styles.calendarButton}>
+        <TouchableOpacity style={styles.calendarButton}>
           <Calendar size={24} color="#2563eb" />
         </TouchableOpacity>
       </View>
@@ -237,35 +242,16 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 24,
   },
-  signInButton: {
-    backgroundColor: '#8b5cf6',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  signInButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 60,
+    paddingTop: 20,
     paddingHorizontal: 20,
     paddingBottom: 20,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 20,
-    backgroundColor: '#f3f4f6',
   },
   calendarButton: {
     width: 40,
@@ -276,14 +262,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f4f6',
   },
   dateInfo: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flex: 1,
   },
   dateText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#374151',
-    textAlign: 'center',
   },
   todayBadge: {
     fontSize: 12,

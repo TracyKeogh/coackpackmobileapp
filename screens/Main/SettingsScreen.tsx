@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LogOut, User, FileText, Shield, CircleHelp as HelpCircle, Info } from 'lucide-react-native';
+import { LogOut, User, FileText, Shield, HelpCircle, Info } from 'lucide-react-native';
 import { supabase } from '../../supabase/client';
 
-export default function SettingsTab() {
-  const router = useRouter();
+export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -39,7 +37,6 @@ export default function SettingsTab() {
             try {
               const { error } = await supabase.auth.signOut();
               if (error) throw error;
-              router.replace('/(auth)/signin');
             } catch (error) {
               console.error('Error signing out:', error);
               Alert.alert('Error', 'Failed to sign out. Please try again.');
@@ -57,7 +54,7 @@ export default function SettingsTab() {
       subtitle: user?.email || 'Not signed in',
       onPress: () => {
         if (!user) {
-          router.push('/(auth)/signin');
+          Alert.alert('Sign In Required', 'Please sign in to view account details.');
         }
       },
     },
@@ -89,14 +86,14 @@ export default function SettingsTab() {
 
   if (isLoading) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={[styles.container, { paddingBottom: insets.bottom }]}>
+    <ScrollView style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Settings</Text>
       </View>
@@ -147,7 +144,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: 'white',
-    paddingTop: 60,
+    paddingTop: 20,
     paddingBottom: 20,
     paddingHorizontal: 20,
     shadowColor: '#000',

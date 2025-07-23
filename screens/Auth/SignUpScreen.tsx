@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { User, Mail, Lock, Eye, EyeOff, Check } from 'lucide-react-native';
 import { supabase } from '../../supabase/client';
 
@@ -13,7 +13,7 @@ export default function SignUpScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
+  const navigation = useNavigation();
 
   const handleSignUp = async () => {
     if (!fullName.trim()) {
@@ -66,16 +66,10 @@ export default function SignUpScreen() {
       if (data.user) {
         Alert.alert(
           'Success', 
-          'Account created successfully! Please check your email to verify your account.',
-          [
-            { 
-              text: 'OK', 
-              onPress: () => router.replace('/(tabs)') 
-            }
-          ]
+          'Account created successfully! Please check your email to verify your account.'
         );
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Sign up error:', error);
       Alert.alert('Error', error.message || 'Failed to create account. Please try again.');
     } finally {
@@ -201,9 +195,9 @@ export default function SignUpScreen() {
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>Already have an account? </Text>
-            <Link href="/(auth)/signin" style={styles.signInLink}>
+            <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
               <Text style={styles.signInLinkText}>Sign In</Text>
-            </Link>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -321,9 +315,6 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 14,
     color: '#6b7280',
-  },
-  signInLink: {
-    marginLeft: 4,
   },
   signInLinkText: {
     fontSize: 14,
