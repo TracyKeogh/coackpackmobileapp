@@ -21,7 +21,11 @@ export default function SignInScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
 
+  console.log('SignInScreen rendered');
+
   const handleSignIn = async () => {
+    console.log('Attempting sign in with:', email);
+    
     if (!email.trim()) {
       Alert.alert('Error', 'Please enter your email address');
       return;
@@ -41,9 +45,11 @@ export default function SignInScreen() {
       });
 
       if (error) {
+        console.error('Sign in error:', error);
         throw error;
       }
 
+      console.log('Sign in successful:', data.user?.email);
       if (data.user) {
         // Navigation will be handled automatically by the auth state change
       }
