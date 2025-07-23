@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { View, Text, StyleSheet } from 'react-native';
-import { supabase } from './supabase/client';
-import AppNavigator from './navigation/AppNavigator';
+import { supabase } from './lib/supabase';
+import AppNavigator from './src/navigation/AppNavigator';
+import type { User } from '@supabase/supabase-js';
 
 export default function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export default function App() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading...</Text>
+        <Text style={styles.loadingText}>Daily Focus</Text>
       </View>
     );
   }
@@ -35,7 +36,7 @@ export default function App() {
   return (
     <NavigationContainer>
       <AppNavigator user={user} />
-      <StatusBar style="auto" />
+      <StatusBar style="dark" />
     </NavigationContainer>
   );
 }
@@ -45,10 +46,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
   },
   loadingText: {
-    fontSize: 16,
-    color: '#6b7280',
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#1f2937',
   },
 });
