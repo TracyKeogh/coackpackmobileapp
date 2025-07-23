@@ -38,7 +38,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "your-project-id-here"
+        "projectId": "daily-focus-app-2024"
       }
     },
     "plugins": [
