@@ -8,7 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LogOut, User, FileText, Shield, HelpCircle, Info } from 'lucide-react-native';
+import { LogOut, User, FileText, Shield, Circle as HelpCircle, Info } from 'lucide-react-native';
 import { supabase } from '../../../lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
