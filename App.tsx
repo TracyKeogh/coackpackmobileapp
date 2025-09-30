@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
 
 export default function App() {
   const [text, setText] = useState('');
   
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Daily Diary</Text>
         <Text style={styles.date}>Tuesday, September 30, 2025</Text>
@@ -26,7 +26,7 @@ export default function App() {
       <TouchableOpacity style={styles.saveButton}>
         <Text style={styles.saveText}>Save Entry</Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }
 
