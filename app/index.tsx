@@ -9,7 +9,8 @@ export default function WelcomeScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    checkAuthStatus();
+    // Skip auth check and go directly to diary
+    router.replace('/(tabs)/diary');
   }, []);
 
   const checkAuthStatus = async () => {
