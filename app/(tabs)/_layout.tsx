@@ -1,7 +1,9 @@
 import { Tabs } from 'expo-router';
 import { Calendar, BookOpen, Settings } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       screenOptions={{
@@ -12,9 +14,9 @@ export default function TabLayout() {
           backgroundColor: '#ffffff',
           borderTopWidth: 1,
           borderTopColor: '#e2e8f0',
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
+          height: 50 + insets.bottom,
+          paddingBottom: 4 + insets.bottom,
+          paddingTop: 4,
         },
         tabBarLabelStyle: {
           fontSize: 12,
