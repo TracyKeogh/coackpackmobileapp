@@ -1,87 +1,71 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { StatusBar } from 'expo-status-bar';
+import 'react-native-gesture-handler';
+import { View, Text, StyleSheet } from 'react-native';
+import { supabase } from './lib/supabase';
+import AppNavigator from './src/navigation/AppNavigator';
+import type { User } from '@supabase/supabase-js';
 
 export default function App() {
-  const [text, setText] = useState('');
-  
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Daily Diary</Text>
-        <Text style={styles.date}>Tuesday, September 30, 2025</Text>
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Session error:', error);
+        }
+        setUser(session?.user ?? null);
+      } catch (error) {
+        console.error('Auth error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
+        setUser(session?.user ?? null);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.loadingText}>Loading...</Text>
       </View>
-      
-      <ScrollView style={styles.content}>
-        <TextInput
-          style={styles.textInput}
-          placeholder="What happened today?"
-          value={text}
-          onChangeText={setText}
-          multiline
-        />
-        
-        <Text style={styles.wordCount}>{text.length} characters</Text>
-      </ScrollView>
-      
-      <TouchableOpacity style={styles.saveButton}>
-        <Text style={styles.saveText}>Save Entry</Text>
-      </TouchableOpacity>
-    </SafeAreaView>
+    );
+  }
+
+  return (
+    <>
+      <NavigationContainer>
+        <AppNavigator user={user} />
+      </NavigationContainer>
+      <StatusBar style="auto" />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  header: {
-    backgroundColor: 'white',
-    padding: 20,
-    paddingTop: 60,
+    justifyContent: 'center',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    backgroundColor: '#ffffff',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  date: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 5,
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  textInput: {
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 15,
-    fontSize: 16,
-    minHeight: 300,
-    textAlignVertical: 'top',
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  wordCount: {
-    textAlign: 'center',
-    color: '#666',
-    marginTop: 10,
-  },
-  saveButton: {
-    backgroundColor: '#007AFF',
-    margin: 20,
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  saveText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+  loadingText: {
+    fontSize: 18,
+    color: '#1f2937',
   },
 });

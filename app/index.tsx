@@ -1,151 +1,87 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { Save } from 'lucide-react-native';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { useRouter } from 'expo-router';
 
-export default function SimpleDaily() {
-  const [diaryEntry, setDiaryEntry] = useState('');
-  const [wordCount, setWordCount] = useState(0);
-  const [selectedDate] = useState(new Date());
-
-  useEffect(() => {
-    const words = diaryEntry.trim().split(/\s+/).filter(word => word.length > 0);
-    setWordCount(words.length);
-  }, [diaryEntry]);
-
-  const formatDisplayDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  const saveDiary = () => {
-    Alert.alert('Success', 'Diary entry saved!');
-  };
+export default function WelcomeScreen() {
+  const router = useRouter();
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.dateText}>{formatDisplayDate(selectedDate)}</Text>
-        <Text style={styles.todayBadge}>Today</Text>
-      </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.editorContainer}>
-          <TextInput
-            style={styles.textInput}
-            placeholder="What happened today? Share your thoughts, feelings, and experiences..."
-            placeholderTextColor="#94a3b8"
-            value={diaryEntry}
-            onChangeText={setDiaryEntry}
-            multiline
-            textAlignVertical="top"
-          />
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <Text style={styles.logo}>Coach Pack</Text>
+          <Text style={styles.tagline}>Daily Focus & Intentional Living</Text>
         </View>
-
-        <View style={styles.stats}>
-          <Text style={styles.statsText}>
-            {wordCount} words • {diaryEntry.length} characters
-          </Text>
+        <View style={styles.actions}>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => router.push('/(auth)/signup')}
+          >
+            <Text style={styles.primaryButtonText}>Sign Up</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => router.push('/(auth)/signin')}
+          >
+            <Text style={styles.secondaryButtonText}>Sign In</Text>
+          </TouchableOpacity>
         </View>
-      </ScrollView>
-
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.saveButton}
-          onPress={saveDiary}
-        >
-          <Save size={20} color="#ffffff" />
-          <Text style={styles.saveButtonText}>Save Entry</Text>
-        </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
-  },
-  header: {
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-    marginTop: 40,
-  },
-  dateText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1e293b',
-  },
-  todayBadge: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#2563eb',
-    backgroundColor: '#dbeafe',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    marginTop: 4,
+    backgroundColor: '#fff',
+    justifyContent: 'space-between',
+    paddingVertical: 60,
+    paddingHorizontal: 24,
   },
   content: {
-    flex: 1,
+    alignItems: 'center',
+    marginTop: 60,
   },
-  editorContainer: {
-    margin: 16,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    minHeight: 400,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+  logo: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: '#8b5cf6',
+    marginBottom: 8,
   },
-  textInput: {
+  tagline: {
     fontSize: 16,
-    lineHeight: 24,
-    color: '#1e293b',
-    textAlignVertical: 'top',
-    minHeight: 360,
-  },
-  stats: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  statsText: {
-    fontSize: 14,
     color: '#64748b',
     textAlign: 'center',
+    marginBottom: 32,
   },
-  footer: {
-    padding: 16,
-    backgroundColor: '#ffffff',
-    borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
+  actions: {
+    marginBottom: 40,
   },
-  saveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#2563eb',
-    paddingVertical: 16,
+  primaryButton: {
+    backgroundColor: '#8b5cf6',
+    paddingVertical: 18,
     borderRadius: 12,
-    gap: 8,
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  saveButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  secondaryButton: {
+    backgroundColor: '#f3f4f6',
+    paddingVertical: 18,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    color: '#8b5cf6',
+    fontSize: 18,
+    fontWeight: '700',
   },
 });
