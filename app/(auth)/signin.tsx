@@ -185,11 +185,11 @@ const styles = StyleSheet.create({
   },
   forgotPasswordText: {
     fontSize: 14,
-    color: '#8b5cf6',
+    color: '#0f172a',
     fontWeight: '600',
   },
   signInButton: {
-    backgroundColor: '#8b5cf6',
+    backgroundColor: '#fbbf24',
     paddingVertical: 18,
     borderRadius: 12,
     alignItems: 'center',
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#94a3b8',
   },
   signInButtonText: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 18,
     fontWeight: '700',
   },
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   },
   signUpLinkText: {
     fontSize: 16,
-    color: '#8b5cf6',
+    color: '#0f172a',
     fontWeight: '600',
   },
 });

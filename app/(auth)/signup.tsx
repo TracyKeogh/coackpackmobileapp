@@ -233,9 +233,9 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   planCard: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#fef3c7',
     borderWidth: 2,
-    borderColor: '#8b5cf6',
+    borderColor: '#0f172a',
     borderRadius: 16,
     padding: 20,
     marginBottom: 32,
@@ -249,16 +249,16 @@ const styles = StyleSheet.create({
   planTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#8b5cf6',
+    color: '#0f172a',
   },
   planPrice: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#8b5cf6',
+    color: '#0f172a',
   },
   planDescription: {
     fontSize: 14,
-    color: '#8b5cf6',
+    color: '#0f172a',
   },
   form: {
     gap: 20,
@@ -309,8 +309,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   checkboxChecked: {
-    backgroundColor: '#8b5cf6',
-    borderColor: '#8b5cf6',
+    backgroundColor: '#fbbf24',
+    borderColor: '#fbbf24',
   },
   checkboxText: {
     flex: 1,
@@ -319,11 +319,11 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   link: {
-    color: '#8b5cf6',
+    color: '#0f172a',
     fontWeight: '600',
   },
   createButton: {
-    backgroundColor: '#8b5cf6',
+    backgroundColor: '#fbbf24',
     paddingVertical: 18,
     borderRadius: 12,
     alignItems: 'center',
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#94a3b8',
   },
   createButtonText: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 18,
     fontWeight: '700',
   },
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   },
   signInLinkText: {
     fontSize: 16,
-    color: '#8b5cf6',
+    color: '#0f172a',
     fontWeight: '600',
   },
 });
