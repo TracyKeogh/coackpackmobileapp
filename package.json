@@ -9,10 +9,18 @@
     "lint": "expo lint"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "expo": "~54.0.0",
+    "expo-constants": "^18.0.9",
+    "expo-linking": "^8.0.8",
+    "expo-router": "^6.0.10",
     "expo-status-bar": "~2.2.0",
-    "react": "19.0.0",
-    "react-native": "0.79.0"
+    "expo-web-browser": "^15.0.8",
+    "lucide-react-native": "^0.545.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native": "0.79.0",
+    "react-native-web": "^0.21.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
